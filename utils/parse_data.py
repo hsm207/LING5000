@@ -49,4 +49,6 @@ def generate_abstract_dataframe(id, title, abstract_node):
                        'text_id': id,
                        'title': title,
                        'sent_num': range(1, len(abstract_sents_tagged) + 1)})
-    return df[column_order]
+    df = df[column_order]
+    df = df.set_index(['text_id', 'sent_num'])
+    return df
