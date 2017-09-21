@@ -3,10 +3,12 @@ from collections import OrderedDict
 import nltk.data
 import re
 import pandas as pd
+import numpy as np
 
 sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 entity_regex = re.compile(r'<entity id=\"([A-Z][\d.-]+)\">(.*?)</entity>')
 abstract_regex = re.compile(r'<abstract>((?:.|\s)*)</abstract>')
+relation_regex = re.compile(r'(?P<relation>[A-Z]+)\((?P<entity1>.+?),(?P<entity2>.+?)(?:,(?P<is_reversed>.+?))?\)')
 
 
 def extract_entities(tagged_sentence):
@@ -68,3 +70,45 @@ def generate_abstract_dataframe(abstractfilepath):
                                         text.find('abstract')) for text in root.getchildren()], axis=0)
 
     return df
+
+
+def get_relation_id(row, ref_series):
+    """
+    Look up the text id and sentence number for a given relation using ref_df. Look up is done based on the given pair
+    of entity ids and assuming that a given relation (based on entity ids) can be found only once in the corpus.
+    :param row: A two column data frame containing the entity ids for entity 1 and entity 2 in a given relation.
+    :param ref_series: A pandas Series object where each row contains the  dictionary containing the
+                  entities in that sentence and is indexed by text id and sentence number.
+    :return: A 1 x 2 data frame where column 1 is the text id and column 2 is the sentence number for the given row.
+    """
+    eid1, eid2 = row
+    idx = ref_series.apply(lambda dict, id1, id2: (id1 in dict) & (id2 in dict), id1=eid1, id2=eid2)
+    # check that the pair of entity ids occur only once in the data set!
+    assert (sum(idx) == 1), 'The entity id pair ({}. {}) occurs more than once in the dataset!'.format(eid1, eid2)
+    # res = ref_series[['text_id', 'sent_num']].where(idx).dropna()
+    res = list(ref_series[idx].index[0])
+    return res
+
+
+def generate_relations_dataframe(relationfilepath, abstract_df):
+    """
+    Generate a data frame containing the relations in the text file in relationfilepath.
+    :param relationfilepath: A string representing the path to the txt file listing the relations.
+    :param abstract_df: A data frame generated from the call to generate_abstract_dataframe() which will be used to look
+                        up each relation's text id and sentence number.
+    :return: A data frame with columns text_id, sent_num, relation, entity1, entity2, is_reversed.
+    """
+    relations_df = pd.read_table(relationfilepath, names=['tmp'])
+    relations_df = relations_df['tmp'].str.extract(relation_regex, expand=True)
+
+    reversed_relations = relations_df['is_reversed'] == 'REVERSE'
+    relations_df['is_reversed'] = np.where(reversed_relations, 1, 0)
+
+    ref = abstract_df['entity_dict']
+
+    relation_ids = relations_df[['entity1', 'entity2']].apply(get_relation_id, axis=1, ref_series=ref)
+
+    relations_df[['text_id', 'sent_num']] = relation_ids
+    relations_df = relations_df.set_index(['text_id', 'sent_num'])
+
+    return relations_df
