@@ -29,10 +29,10 @@ def extract_tagged_abstract(abstract_node):
     return re.search(abstract_regex, abstract_string).group(1).strip()
 
 
-def generate_abstract_dataframe(id, title, abstract_node):
+def parse_abstract_text(id, title, abstract_node):
     """
-    Generate a data frame for each text tag in the training/test data. Code is written based on trial data for
-    subtask 1.1
+    Generate a data frame representing an abstract given the function's parameters. Code is written based on trial data
+    for subtask 1.1
     :param id: A string representing the id attribute of the text tag
     :param title: A string representing the title of the abstract
     :param abstract_node: An Element (from Element Tree) representing the abstract tag
@@ -51,4 +51,20 @@ def generate_abstract_dataframe(id, title, abstract_node):
                        'sent_num': range(1, len(abstract_sents_tagged) + 1)})
     df = df[column_order]
     df = df.set_index(['text_id', 'sent_num'])
+    return df
+
+
+def generate_abstract_dataframe(abstractfilepath):
+    """
+    Generate a dataframe representing the abstracts stored in the given xml file
+    :param abstractfilepath: A string representing the path to the xml file containing the abstracts
+    :return: A data frame that is the concatenation of the call to parse_abstract_text() on each text tag in the xml
+             file
+    """
+    tree = ET.parse(abstractfilepath)
+    root = tree.getroot()
+    df = pd.concat([parse_abstract_text(text.get('id'),
+                                        text.find('title').text,
+                                        text.find('abstract')) for text in root.getchildren()], axis=0)
+
     return df
