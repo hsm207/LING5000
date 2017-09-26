@@ -84,7 +84,7 @@ def get_relation_id(row, ref_series):
     eid1, eid2 = row
     idx = ref_series.apply(lambda dict, id1, id2: (id1 in dict) & (id2 in dict), id1=eid1, id2=eid2)
     # check that the pair of entity ids occur only once in the data set!
-    assert (sum(idx) == 1), 'The entity id pair ({}. {}) occurs more than once in the dataset!'.format(eid1, eid2)
+    assert (sum(idx) == 1), 'The entity id pair ({}, {}) occurs more than once in the dataset!'.format(eid1, eid2)
     # res = ref_series[['text_id', 'sent_num']].where(idx).dropna()
     res = list(ref_series[idx].index[0])
     return res
