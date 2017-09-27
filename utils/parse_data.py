@@ -6,6 +6,11 @@ import pandas as pd
 import numpy as np
 
 sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+sent_detector._params.abbrev_types.add('viz')
+sent_detector._params.abbrev_types.add('e.g')
+sent_detector._params.abbrev_types.add('i.e')
+sent_detector._params.abbrev_types.add('al')
+
 entity_regex = re.compile(r'<entity id=\"([A-Z][\d.-]+)\">(.*?)</entity>')
 abstract_regex = re.compile(r'<abstract>((?:.|\s)*)</abstract>')
 relation_regex = re.compile(r'(?P<relation>[A-Z]+)\((?P<entity1>.+?),(?P<entity2>.+?)(?:,(?P<is_reversed>.+?))?\)')
