@@ -6,6 +6,11 @@ import pandas as pd
 import numpy as np
 
 sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+sent_detector._params.abbrev_types.add('viz')
+sent_detector._params.abbrev_types.add('e.g')
+sent_detector._params.abbrev_types.add('i.e')
+sent_detector._params.abbrev_types.add('al')
+
 entity_regex = re.compile(r'<entity id=\"([A-Z][\d.-]+)\">(.*?)</entity>')
 abstract_regex = re.compile(r'<abstract>((?:.|\s)*)</abstract>')
 relation_regex = re.compile(r'(?P<relation>[A-Z]+)\((?P<entity1>.+?),(?P<entity2>.+?)(?:,(?P<is_reversed>.+?))?\)')
@@ -84,7 +89,7 @@ def get_relation_id(row, ref_series):
     eid1, eid2 = row
     idx = ref_series.apply(lambda dict, id1, id2: (id1 in dict) & (id2 in dict), id1=eid1, id2=eid2)
     # check that the pair of entity ids occur only once in the data set!
-    assert (sum(idx) == 1), 'The entity id pair ({}. {}) occurs more than once in the dataset!'.format(eid1, eid2)
+    assert (sum(idx) == 1), 'The entity id pair ({}, {}) occured {} times in the dataset!'.format(eid1, eid2, sum(idx))
     # res = ref_series[['text_id', 'sent_num']].where(idx).dropna()
     res = list(ref_series[idx].index[0])
     return res
