@@ -38,7 +38,7 @@ def get_words_between_entities(row):
         'punct': punctuation
     }
 
-    words_between_entities_regex = r'{e1}[{punct}]? [{punct}]?(.*?){e2}'.format(**regex_params)
+    words_between_entities_regex = r'{e1}(.*?){e2}'.format(**regex_params)
     words_between_entities = re.search(words_between_entities_regex, tagged_sent)
     # assert (words_between_entities is not None), 'Cannot find words betweeen {} and {}!'.format(e1, e2)
     words_between_entities = words_between_entities.group(2)
