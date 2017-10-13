@@ -1,4 +1,5 @@
-from nltk import word_tokenize
+from nltk import word_tokenize, StanfordPOSTagger
+import os
 import re
 from string import punctuation
 import numpy as np
@@ -68,3 +69,59 @@ def get_positional_embeddings(row):
 
     return pd.Series({'relative_position_e1': relative_position_e1,
                       'relative_position_e2': relative_position_e2})
+
+
+def initialize_pos_tagger(nthreads='1',
+                          model='wsj-0-18-bidirectional-distsim.tagger',
+                          java_home='C:/ProgramData/Oracle/Java/javapath/java.exe',
+                          classpath='resources/stanford-postagger-full-2017-06-09',
+                          tagger_models='resources/stanford-postagger-full-2017-06-09/models'):
+    """
+    This function initializes the Stanford POS tagger with the given parameters and returns a function that will
+    perform the POS-tagging with parameterized tagger.
+
+    The input to the returned function is a list of a list of tokens and the output is a list of corresponding POS tag.
+    :param nthreads: A string representing the number of threads the tagger should be initialized with
+    :param model: A string representing one of Stanford's pre-trained taggers
+    :param java_home: A string representing the full path to the java executable
+    :param classpath: A string representing the path to the stanford-postagger.jar file
+    :param tagger_models: A string representing the path to the models folder containing the pre-trained models
+    :return: A function that takes as input a list of a list of tokens and returns a list of the corresponding POS tags
+    """
+    os.environ['JAVA_HOME'] = java_home
+    os.environ['CLASSPATH'] = classpath
+    os.environ['STANFORD_MODELS'] = tagger_models
+
+    # Subclass the StanfordPOSTagger to add the nthreads option and customize its output
+    class CustomStanfordPOSTagger(StanfordPOSTagger):
+        def __init__(self, *args, **kwargs):
+            if 'nthreads' in kwargs:
+                self.nthreads = kwargs.pop('nthreads')
+
+            else:
+                self.nthreads = '1'
+
+            super().__init__(*args, **kwargs)
+
+        @property
+        def _cmd(self):
+            custom_cmd = ['-nthreads', self.nthreads]
+            return super()._cmd + custom_cmd
+
+        def parse_output(self, text, sentences=None):
+            # Output the tagged sentences
+            tagged_sentences = []
+            for tagged_sentence in text.strip().split("\n"):
+                sentence = []
+                for tagged_word in tagged_sentence.strip().split():
+                    word_tags = tagged_word.strip().split(self._SEPARATOR)
+                    sentence.append(word_tags[-1])
+                tagged_sentences.append(sentence)
+            return tagged_sentences
+
+    pt = CustomStanfordPOSTagger(model, verbose=True, java_options='-mx2G', nthreads=nthreads)
+
+    def get_pos_tags(tokens_list):
+        return pt.tag_sents(tokens_list)
+
+    return get_pos_tags
