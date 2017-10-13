@@ -100,3 +100,4 @@ ENV/
 /data/
 /*.ipynb
 /data_subsets/
+/resources/
