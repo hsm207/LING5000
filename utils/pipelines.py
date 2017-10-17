@@ -42,3 +42,24 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
         .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, 11))
 
     return batched_dataset
+
+
+def load_word_embeddings(file, vocab_size, embedding_dim):
+    """
+    Loads a pre-trained word embedding matrix into tensorflow
+
+    :param file: Path to the file containing the word embedding. The content of the file is assumed to be
+                space separated floats
+    :param vocab_size: Number of rows in the embedding matrix.
+                       This should be the number of unique words in your corpus + 1 (so that zero padded inputs
+                       can be looked up too)
+    :param embedding_dim: Number of columns in the embedding matrix
+    :return: An vocab_size x embedding_dim matrix of floats
+    """
+    embed_matrix = tf.read_file(file)
+    embed_matrix = tf.expand_dims(embed_matrix, 0)
+    embed_matrix = tf.string_split(embed_matrix, ' \n').values
+    embed_matrix = tf.string_to_number(embed_matrix, tf.float32)
+    embed_matrix = tf.reshape(embed_matrix, [vocab_size, embedding_dim])
+
+    return embed_matrix
