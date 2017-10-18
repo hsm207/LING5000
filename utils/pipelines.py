@@ -17,13 +17,15 @@ def parse_input_file_line(filename):
 def generate_batched_dataset(input_files, pad_size, batch_size):
     """
     Use tensorflow's Dataset API to feed input into the model.
-    :param input_files: A list of 4 strings containing the file paths to the target label, pos indices,
-                        positional index for entity 1 and positional index for entity 2 (must be in this order!)
+    :param input_files: A list of 5 strings containing the file paths to the target label, pos indices,
+                        positional index for entity 1, positional index for entity 2 and integerized tokens
+                        (must be in this order!)
     :param pad_size: An integer to specify the number of 0s to pad the features
     :param batch_size: An integer to specify the mini batch size
-    :return: A batached dataset
+    :return: A batached dataset of the form (integerized tokens, integerized pos tages, positional embeddings for
+                                             entity 1, positional embeddings for entity 2,  one hot target labels
     """
-    target, pos, rel_e1, rel_e2, = input_files
+    target, pos, rel_e1, rel_e2, tokens = input_files
 
     target_labels = tf.contrib.data.Dataset.from_tensor_slices([target]) \
         .flat_map(parse_input_file_line)
@@ -37,9 +39,11 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
     positional_embeddings_e2 = tf.contrib.data.Dataset.from_tensor_slices([rel_e2]) \
         .flat_map(parse_input_file_line)
 
-    batched_dataset = tf.contrib.data.Dataset.zip((pos_tags, positional_embeddings_e1,
+    tokens_int = tf.contrib.data.Dataset.from_tensor_slices([tokens]) \
+        .flat_map(parse_input_file_line)
+    batched_dataset = tf.contrib.data.Dataset.zip((tokens_int, pos_tags, positional_embeddings_e1,
                                                    positional_embeddings_e2, target_labels)) \
-        .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, 11))
+        .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, pad_size, 11))
 
     return batched_dataset
 
