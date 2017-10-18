@@ -37,7 +37,9 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
         .flat_map(parse_input_file_line)
 
     positional_embeddings_e2 = tf.contrib.data.Dataset.from_tensor_slices([rel_e2]) \
-        .flat_map(parse_input_file_line)
+        .flat_map(parse_input_file_line) \
+        .map(tf.abs)  # needed to do this because negative indices won't work in the embedding lookup and I don't
+    # feel editing the file generation process again
 
     tokens_int = tf.contrib.data.Dataset.from_tensor_slices([tokens]) \
         .flat_map(parse_input_file_line)
