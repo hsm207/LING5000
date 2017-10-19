@@ -28,7 +28,8 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
     target, pos, rel_e1, rel_e2, tokens = input_files
 
     target_labels = tf.contrib.data.Dataset.from_tensor_slices([target]) \
-        .flat_map(parse_input_file_line)
+        .flat_map(parse_input_file_line) \
+        .map(tf.to_float)
 
     pos_tags = tf.contrib.data.Dataset.from_tensor_slices([pos]) \
         .flat_map(parse_input_file_line)
