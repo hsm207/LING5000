@@ -75,3 +75,34 @@ def load_word_embeddings(file, vocab_size, embedding_dim):
     embed_matrix = tf.reshape(embed_matrix, [vocab_size, embedding_dim])
 
     return embed_matrix
+
+
+def my_input_fn(filenames, train_flag, data_pad_size, batch_size):
+    """
+    Function to create an input pipeline to fed into an Estimator
+    :param filenames: List of strings of file paths:
+                      [path/to/target_labels,
+                       path/to/pos_features,
+                       path/to/relative_position_of_entity1,
+                       path/to/relative_position_of_entity2,
+                       path/to/integerized_tokens]
+    :param train_flag: A boolean to indicate if the input pipeline will be used for training or not
+    :param data_pad_size: Amount of padding to apply to each feature
+    :param batch_size: An integer to set the size of a batch
+    :return: A function that can be used as the argument to input_fn in the Estimator API
+    """
+
+    def input_pipeline_builder():
+        if train_flag:
+            dataset = generate_batched_dataset(filenames, data_pad_size, batch_size) \
+                .shuffle(500) \
+                .repeat()
+        else:
+            dataset = generate_batched_dataset(filenames, data_pad_size, batch_size) \
+                .repeat(1)
+
+        iterator = dataset.make_one_shot_iterator()
+        features, labels = iterator.get_next()
+        return features, labels
+
+    return input_pipeline_builder
