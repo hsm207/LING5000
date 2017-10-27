@@ -25,6 +25,8 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
     :return: A batached dataset of the form (integerized tokens, integerized pos tages, positional embeddings for
                                              entity 1, positional embeddings for entity 2,  one hot target labels
     """
+
+    features = ['token_idx', 'pos_idx', 'positional_e1_idx', 'positional_e2_idx']
     target, pos, rel_e1, rel_e2, tokens = input_files
 
     target_labels = tf.contrib.data.Dataset.from_tensor_slices([target]) \
@@ -37,16 +39,19 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
     positional_embeddings_e1 = tf.contrib.data.Dataset.from_tensor_slices([rel_e1]) \
         .flat_map(parse_input_file_line)
 
+    # needed to take the abs of positional embedding e2 because negative indices won't work in the embedding lookup
+    # and I don'# feel editing the file generation process again
     positional_embeddings_e2 = tf.contrib.data.Dataset.from_tensor_slices([rel_e2]) \
         .flat_map(parse_input_file_line) \
-        .map(tf.abs)  # needed to do this because negative indices won't work in the embedding lookup and I don't
-    # feel editing the file generation process again
+        .map(tf.abs)
 
     tokens_int = tf.contrib.data.Dataset.from_tensor_slices([tokens]) \
         .flat_map(parse_input_file_line)
+
     batched_dataset = tf.contrib.data.Dataset.zip((tokens_int, pos_tags, positional_embeddings_e1,
                                                    positional_embeddings_e2, target_labels)) \
-        .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, pad_size, 11))
+        .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, pad_size, 11)) \
+        .map(lambda *batch: (dict(zip(features, batch[:-1])), batch[-1]))
 
     return batched_dataset
 
