@@ -1,5 +1,6 @@
 import tensorflow as tf
 from itertools import chain
+from sklearn.metrics import f1_score
 
 
 def streaming_f1(labels, preds, n_classes, type='macro'):
@@ -41,3 +42,14 @@ def streaming_f1(labels, preds, n_classes, type='macro'):
                                                          ))
 
     return f1_val, f1_update_op
+
+
+def sk_f1_score(y, yhat, method):
+    """
+    Use scikit learn to compute the model's f1 micro/macro score
+    :param y: A numeric tensor representing the ground truth
+    :param yhat: A numeric tensor representing the mdodel's predictions
+    :param method: A string to denote the type of f1 score to compute ('macro' or 'micro')
+    :return: A double repsenting the metric computed
+    """
+    return f1_score(y, yhat, average=tf.compat.as_str(method))
