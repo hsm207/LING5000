@@ -53,3 +53,18 @@ def sk_f1_score(y, yhat, method):
     :return: A double repsenting the metric computed
     """
     return f1_score(y, yhat, average=tf.compat.as_str(method))
+
+
+def model_evaluation_metrics(categorical_labels, categorical_predictions):
+    """
+    Computes a dictionary of metrics to evaluate a model's preictions.
+
+    :param categorical_labels: A tensor of group truths
+    :param categorical_predictions: A tensor of predictions
+    :return: A dictionary of metrics that can be passed to eval_metric_ops in the Estimator API
+    """
+    return {
+        'accuracy': tf.metrics.accuracy(categorical_labels, categorical_predictions, name='metrics.accuracy'),
+        'f1-macro': streaming_f1(categorical_labels, categorical_predictions, 11, 'macro'),
+        'f1-micro': streaming_f1(categorical_labels, categorical_predictions, 11, 'micro')
+    }
