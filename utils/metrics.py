@@ -1,6 +1,8 @@
 import tensorflow as tf
 from itertools import chain
 from sklearn.metrics import f1_score
+import pandas as pd
+import os
 
 
 def streaming_f1(labels, preds, n_classes, type='macro'):
@@ -68,3 +70,13 @@ def model_evaluation_metrics(categorical_labels, categorical_predictions):
         'f1-macro': streaming_f1(categorical_labels, categorical_predictions, 11, 'macro'),
         'f1-micro': streaming_f1(categorical_labels, categorical_predictions, 11, 'micro')
     }
+
+
+def consolidate_metrics(results_folder):
+    """
+    Consolidate all the csv files in the results folder
+    :param results_folder: Path to the results folder
+    :return: A data frame with each row containing the contents of the csv files in the results folder
+    """
+    return pd.concat([pd.read_csv(os.path.join(results_folder, file), index_col='model_name')
+                      for file in os.listdir(results_folder)], axis=0)
