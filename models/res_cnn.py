@@ -22,10 +22,11 @@ def res_cnn_1(features, labels, mode, params):
         identity_shortcut_name = 'B{}_identity_chortcut'.format(block_id)
 
         with tf.name_scope(block_name):
-            conv1 = Convolution2D(filters=128, kernel_size=[3, block_input.shape[2].value], strides=1, padding='same',
+            conv1 = Convolution2D(filters=n_filters, kernel_size=[3, block_input.shape[2].value], strides=1,
+                                  padding='same',
                                   data_format='channels_last', activation='relu', name=conv1_name)(block_input)
 
-            conv2 = Convolution2D(filters=128, kernel_size=[3, conv1.shape[2].value], strides=1, padding='same',
+            conv2 = Convolution2D(filters=n_filters, kernel_size=[3, conv1.shape[2].value], strides=1, padding='same',
                                   data_format='channels_last', activation='relu', name=conv2_name)(conv1)
 
             identity_shortcut = tf.add(conv2, block_input, name=identity_shortcut_name)
@@ -35,6 +36,7 @@ def res_cnn_1(features, labels, mode, params):
     class_weights_params = params['class_weights']
     word_embeddings_file_path_param = params['word_embeddings_path']
     n_res_cnn_blocks_param = params['number_of_res_cnn_blocks']
+    n_filters = params['filter_size']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         set_learning_phase(True)
@@ -81,7 +83,7 @@ def res_cnn_1(features, labels, mode, params):
         features_concat = tf.expand_dims(features_concat, -1)
 
     with tf.name_scope('convolution_layer'):
-        features_conv = Convolution2D(filters=128, kernel_size=[3, features_concat.shape[2].value], strides=1,
+        features_conv = Convolution2D(filters=n_filters, kernel_size=[3, features_concat.shape[2].value], strides=1,
                                       padding='valid',
                                       data_format='channels_last', activation='relu')(features_concat)
 
@@ -97,8 +99,8 @@ def res_cnn_1(features, labels, mode, params):
     with tf.name_scope('dense_layers'):
         features_flat = Flatten()(features_pooled)
         features_flat = Dropout(0.5)(features_flat)
-        dense1 = Dense(128, activation='relu', name='dense_1')(features_flat)
-        dense2 = Dense(128, activation='relu', name='dense_2')(dense1)
+        dense1 = Dense(n_filters, activation='relu', name='dense_1')(features_flat)
+        dense2 = Dense(n_filters, activation='relu', name='dense_2')(dense1)
 
     with tf.name_scope('output_layer'):
         output_logits = Dense(11, activation='linear', name='logits')(dense2)
