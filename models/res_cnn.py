@@ -108,7 +108,8 @@ def res_cnn_1(features, labels, mode, params):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(
             mode=mode,
-            predictions={"relation": output_predictions})
+            predictions={'relation': output_predictions,
+                         'id': tf.squeeze(features['id'])})
 
     with tf.name_scope('training_step'):
         class_weights = class_weights_params
