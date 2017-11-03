@@ -17,7 +17,7 @@ def parse_input_file_line(filename):
 def generate_batched_dataset(input_files, pad_size, batch_size):
     """
     Use tensorflow's Dataset API to feed input into the model.
-    :param input_files: A list of 5 strings containing the file paths to the target label, pos indices,
+    :param input_files: A list of 6 strings containing the file paths to the observation id, target label, pos indices,
                         positional index for entity 1, positional index for entity 2 and integerized tokens
                         (must be in this order!)
     :param pad_size: An integer to specify the number of 0s to pad the features
@@ -26,8 +26,11 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
                                              entity 1, positional embeddings for entity 2,  one hot target labels
     """
 
-    features = ['token_idx', 'pos_idx', 'positional_e1_idx', 'positional_e2_idx']
-    target, pos, rel_e1, rel_e2, tokens = input_files
+    features = ['id', 'token_idx', 'pos_idx', 'positional_e1_idx', 'positional_e2_idx']
+    ids, target, pos, rel_e1, rel_e2, tokens = input_files
+
+    observation_ids = tf.contrib.data.Dataset.from_tensor_slices([ids]) \
+        .flat_map(parse_input_file_line)
 
     target_labels = tf.contrib.data.Dataset.from_tensor_slices([target]) \
         .flat_map(parse_input_file_line) \
@@ -48,9 +51,9 @@ def generate_batched_dataset(input_files, pad_size, batch_size):
     tokens_int = tf.contrib.data.Dataset.from_tensor_slices([tokens]) \
         .flat_map(parse_input_file_line)
 
-    batched_dataset = tf.contrib.data.Dataset.zip((tokens_int, pos_tags, positional_embeddings_e1,
+    batched_dataset = tf.contrib.data.Dataset.zip((observation_ids, tokens_int, pos_tags, positional_embeddings_e1,
                                                    positional_embeddings_e2, target_labels)) \
-        .padded_batch(batch_size, padded_shapes=(pad_size, pad_size, pad_size, pad_size, 11)) \
+        .padded_batch(batch_size, padded_shapes=(1, pad_size, pad_size, pad_size, pad_size, 11)) \
         .map(lambda *batch: (dict(zip(features, batch[:-1])), batch[-1]))
 
     return batched_dataset
