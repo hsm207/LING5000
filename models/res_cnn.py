@@ -1,4 +1,5 @@
 from tensorflow.contrib.keras.api.keras.layers import Embedding, Convolution2D, MaxPool2D, Flatten, Dropout, Dense
+from tensorflow.contrib.keras.api.keras.initializers import Constant
 from tensorflow.contrib.keras.api.keras.activations import softmax
 from tensorflow.contrib.keras.api.keras.backend import set_learning_phase
 from tensorflow.python.estimator.model_fn import EstimatorSpec
@@ -60,7 +61,7 @@ def res_cnn_1(features, labels, mode, params):
         word_embedding_vocab, word_embedding_dim = word_embeddings.shape
 
         word_embeddings = Embedding(word_embedding_vocab, word_embedding_dim, input_length=token_idx.shape[1].value,
-                                    weights=[word_embeddings],
+                                    embeddings_initializer=Constant(word_embeddings),
                                     name='word_embeddings')
         pos_embeddings = Embedding(pos_embedding_vocab, pos_embedding_dim, input_length=pos_idx.shape[1].value,
                                    name='part-of-speech_embeddings')
