@@ -60,19 +60,15 @@ training_input_fn = my_input_fn(training_filenames, 1, 30, 982)
 test_input_fn = my_input_fn(test_filenames, 0, 30, 246)
 predict_input_fn = my_input_fn(predict_filenames, 0, 30, 982 + 246)
 
-
-
-# feed_dict = {'class_weights': [4.15, 6.57, 5.43, 12.28, 7.77, 16.16, 12.93, 153.5, 122.80, 23.62, 61.40],
-#              'word_embeddings_path': word_embeddings_path}
-
-train_steps = 500
+train_steps = [200, 600, 800, 1000, 1200, 1500]
 # Default hyper parameters for all models
 feed_dict = {'class_weights': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
              'word_embeddings_path': word_embeddings_path,
-             'number_of_res_cnn_blocks': 2}
+             'number_of_res_cnn_blocks': 2,
+             'filter_size': 128}
 
 # hyperparameters for class weights
-class_weights_ratios = np.arange(0.5, 5.5, 1)
+class_weights_ratios = np.arange(1, 5.5, 1.5)
 class_freq = np.array([0.08143322, 0.24104235, 0.00814332, 0.06188925, 0.04234528,
                        0.1286645, 0.07736156, 0.01628664, 0.18403909, 0.15228013,
                        0.00651466])
@@ -89,29 +85,39 @@ for r in class_weights_ratios:
     class_weights_params.append(weights)
     class_weights_params.append(weights / np.sum(weights))
 
+class_weights_params = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]  # use equal weights until can figure method to pick weights?
+
 # hyper parameters for number of cnn blocks
-n_res_cnn_blocks = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+n_res_cnn_blocks = [0, 1, 2, 3, 4]
 
+# hyper parameters for number of filters
+n_filter_sizes = [128, 256, 512, 1024]
 # combine all possible hyperparams
-hyperparams = product(class_weights_params, n_res_cnn_blocks)
+hyperparams = product(class_weights_params, n_res_cnn_blocks, n_filter_sizes)
+hyperparams = [([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 0, 128)]
+train_steps = [5, 10, 15, 20, 25, 30, 25]
+for i, (class_weights, n_res_cnn, n_filter_size) in enumerate(hyperparams, 3):
 
-for i, (class_weights, n_res_cnn) in enumerate(hyperparams, 1):
-    feed_dict['class_weights'] = class_weights
-    feed_dict['number_of_res_cnn_blocks'] = n_res_cnn
+    for epochs in train_steps:
+        feed_dict['class_weights'] = class_weights
+        feed_dict['number_of_res_cnn_blocks'] = n_res_cnn
+        feed_dict['filter_size'] = n_filter_size
 
-    config = RunConfig(model_dir='./model_dir/res_cnn_1_' + str(i))
-    classifier_res_cnn = tf.estimator.Estimator(model_fn=res_cnn_1, params=feed_dict,
-                                                config=config)
-    experiment_res_cnn_1 = Experiment(
-        estimator=classifier_res_cnn,
-        train_input_fn=training_input_fn,
-        eval_input_fn=test_input_fn,
-        eval_metrics=None,
-        train_steps=train_steps,
-        min_eval_frequency=0,
-        eval_delay_secs=0
-    )
+        config = RunConfig(model_dir='./model_dir/res_cnn_1_' + str(i), save_summary_steps=1)
+        classifier_res_cnn = tf.estimator.Estimator(model_fn=res_cnn_1, params=feed_dict,
+                                                    config=config)
+        experiment_res_cnn_1 = Experiment(
+            estimator=classifier_res_cnn,
+            train_input_fn=training_input_fn,
+            eval_input_fn=test_input_fn,
+            eval_metrics=None,
+            train_steps=epochs,
+            min_eval_frequency=1,
+            eval_delay_secs=0
+        )
 
-    res_cnn_df = report_experiment(experiment_res_cnn_1)
-    # res_cnn_df.to_excel('./results/' + res_cnn_df.index[0] + '.xlsx', 'results')
-    res_cnn_df.to_csv('./results/' + res_cnn_df.index[0] + '.csv')
+        experiment_res_cnn_1.train_and_evaluate()
+        # res_cnn_df = report_experiment(experiment_res_cnn_1)
+        # res_cnn_df.to_csv('./results/' + res_cnn_df.index[0] + '_{}.csv'.format(epochs))
+
+print('Finished experiments!')
