@@ -5,6 +5,7 @@ from string import punctuation
 import numpy as np
 import pandas as pd
 from html import unescape
+from scipy.stats import truncnorm
 
 punctuation = punctuation.replace('<', '')
 punctuation = punctuation.replace('>', '')
@@ -125,3 +126,61 @@ def initialize_pos_tagger(nthreads='1',
         return pt.tag_sents(tokens_list)
 
     return get_pos_tags
+
+
+def load_pretrained_embeddings(filename):
+    """
+    Load a text file containing pre-trained word embeddings into a pandas data frame.
+    We assume that the text file is space separated and each row starts with a word followed by its embedding.
+
+    :param filename: Path to the file containing the pre-trained word embeddings
+    :return: A two column data frame where the first column is the word and the second column is the embedding
+            (stored as a string)
+    """
+    embed_dict = {}
+
+    with open(filename, 'r', encoding='utf-8') as f:
+        for line in f:
+            word, embedding = line.split(' ', 1)
+            embed_dict[word] = embedding
+
+    embed_df = pd.DataFrame.from_dict(embed_dict, orient='index')
+    embed_df.reset_index(inplace=True)
+    embed_df.columns = ['word', 'embedding']
+
+    return embed_df
+
+
+def create_embedding_matrix(pretrain_embed_df, corpus_df, embedding_dimension):
+    """
+    Create an embedding matrix for your corpus usingg a pre-trained word embedding
+    :param pretrain_embed_df: A pandas data frame from the call to load_pretrained_embeddings()
+    :param corpus_df: A two column data frame with the following columns:
+                        1. word: A word in your corpus
+                        2. index: An integer to represent the corresponding word
+                      This data frame can be created based on word_index attribute of Keras' tokenizer class
+    :param embedding_dimension: An integer representing the number of dimensions of the pre-trained vector embedding
+    :return: A tuple of the form (corpus' embedding matrix, data frame of words in the corpus without an embedding)
+    """
+    assert np.all(
+        corpus_df.columns == ['word', 'index']), "Expected columns in corpus_df to be ['word', 'index'] but got {}" \
+        .format(corpus_df.columns)
+
+    corpus_df = corpus_df.merge(pretrain_embed_df, how='left', on='word')
+    corpus_df.sort_values('index', ascending=True, inplace=True)
+
+    idx_no_embeddings = corpus_df['embedding'].isnull()
+    no_embeddings_df = corpus_df[idx_no_embeddings]
+
+    vocab_size = corpus_df.shape[0] + 1
+
+    rv = truncnorm(-2, 2)
+    embedding_matrix = rv.rvs([vocab_size, embedding_dimension])
+
+    embed_index = corpus_df['index'][~idx_no_embeddings]
+    embed_val = corpus_df['embedding'][~idx_no_embeddings].apply(
+        lambda row: np.fromstring(row, sep=' ', dtype=np.float32))
+
+    embedding_matrix[embed_index, :] = np.stack(embed_val.values)
+
+    return embedding_matrix, no_embeddings_df
