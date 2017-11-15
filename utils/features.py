@@ -28,6 +28,8 @@ def get_entity_word_offsets(tagged_sentence, target_entity_id):
     def convert_tagged_entity_to_string(sentence, entity_tag):
         return re.sub(entity_tag, r'\g<entity_text>', sentence)
 
+    # since some sentences can have html codes in it...
+    tagged_sentence = unescape(tagged_sentence)
     tagged_target_entity = entity_regex_generator(target_entity_id)
     regex_words_around_entity = f"(?P<lhs_words>.*)?{tagged_target_entity}(?P<rhs_words>.*)?"
     other_entities = (k for k in extract_entities(tagged_sentence).keys() if k != target_entity_id)
