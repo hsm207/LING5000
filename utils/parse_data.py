@@ -13,7 +13,7 @@ sent_detector._params.abbrev_types.add('al')
 
 entity_regex = re.compile(r'<entity id=\"([A-Z][\d.-]+)\">(.*?)</entity>')
 abstract_regex = re.compile(r'<abstract>((?:.|\s)*)</abstract>')
-relation_regex = re.compile(r'(?P<relation>[A-Z]+)\((?P<entity1>.+?),(?P<entity2>.+?)(?:,(?P<is_reversed>.+?))?\)')
+relation_regex = re.compile(r'(?P<relation>[A-Z\-_]+)\((?P<entity1>.+?),(?P<entity2>.+?)(?:,(?P<is_reversed>.+?))?\)')
 
 
 def extract_entities(tagged_sentence):
