@@ -32,7 +32,11 @@ def extract_tagged_abstract(abstract_node):
     :param abstract_node: An Element representing the abstract tag
     :return: A string containing the text between the abstract tags
     """
-    abstract_string = ET.tostring(abstract_node).decode('utf-8')
+    other_tags = set([c.tag for c in abstract_node]).difference(('entity',))
+
+    # This assertion result in the deletion of the SectionTitle tag in id J05-4003 in the file 1.1text.xml
+    assert (bool(other_tags) == False), f'Found other tags within the abstract tag!: {other_tags}'
+    abstract_string = ET.tostring(abstract_node, method='html').decode('utf-8')
     return re.search(abstract_regex, abstract_string).group(1).strip()
 
 
