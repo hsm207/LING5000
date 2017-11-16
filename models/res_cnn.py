@@ -45,9 +45,10 @@ def res_cnn_1(features, labels, mode, params):
         set_learning_phase(False)
 
     with tf.name_scope('input_layer'):
-        pos_embedding_vocab = 36 + 1
+        pos_embedding_vocab = 40 + 1
         pos_embedding_dim = 5
-        positional_embedding_vocab = 30 + 1
+        positional_embedding_vocab_e1 = 165 + 1
+        positional_embedding_vocab_e2 = 166 + 1
         positional_embedding_dim = 5
 
         pos_idx = features['pos_idx']
@@ -65,10 +66,10 @@ def res_cnn_1(features, labels, mode, params):
                                     name='word_embeddings')
         pos_embeddings = Embedding(pos_embedding_vocab, pos_embedding_dim, input_length=pos_idx.shape[1].value,
                                    name='part-of-speech_embeddings')
-        positional_e1_embeddings = Embedding(positional_embedding_vocab, positional_embedding_dim,
+        positional_e1_embeddings = Embedding(positional_embedding_vocab_e1, positional_embedding_dim,
                                              input_length=positional_e1_idx.shape[1].value,
                                              name='entity1_positional_embedding')
-        positional_e2_embeddings = Embedding(positional_embedding_vocab, positional_embedding_dim,
+        positional_e2_embeddings = Embedding(positional_embedding_vocab_e2, positional_embedding_dim,
                                              input_length=positional_e2_idx.shape[1].value,
                                              name='entity2_positional_embedding')
 
