@@ -37,7 +37,7 @@ def res_cnn_1(features, labels, mode, params):
     class_weights_params = params['class_weights']
     word_embeddings_file_path_param = params['word_embeddings_path']
     n_res_cnn_blocks_param = params['number_of_res_cnn_blocks']
-    n_filters = params['filter_size']
+    n_filters = params['number_of_filters']
     other_feature_dim = params['other_feature_embeedding_dim']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
