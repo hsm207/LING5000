@@ -16,18 +16,19 @@ def res_cnn_1(features, labels, mode, params):
 
     """
 
-    def residual_cnn_block_builder(block_input, block_id):
+    def residual_cnn_block_builder(block_input, block_id, filter_height):
         block_name = 'B{}_residual_cnn_block'.format(block_id)
         conv1_name = 'B{}_convolution1'.format(block_id)
         conv2_name = 'B{}_convolution2'.format(block_id)
         identity_shortcut_name = 'B{}_identity_chortcut'.format(block_id)
 
         with tf.name_scope(block_name):
-            conv1 = Convolution2D(filters=n_filters, kernel_size=[3, block_input.shape[2].value], strides=1,
+            conv1 = Convolution2D(filters=n_filters, kernel_size=[filter_height, block_input.shape[2].value], strides=1,
                                   padding='same',
                                   data_format='channels_last', activation='relu', name=conv1_name)(block_input)
 
-            conv2 = Convolution2D(filters=n_filters, kernel_size=[3, conv1.shape[2].value], strides=1, padding='same',
+            conv2 = Convolution2D(filters=n_filters, kernel_size=[filter_height, conv1.shape[2].value], strides=1,
+                                  padding='same',
                                   data_format='channels_last', activation='relu', name=conv2_name)(conv1)
 
             identity_shortcut = tf.add(conv2, block_input, name=identity_shortcut_name)
@@ -39,6 +40,7 @@ def res_cnn_1(features, labels, mode, params):
     n_res_cnn_blocks_param = params['number_of_res_cnn_blocks']
     n_filters = params['number_of_filters']
     other_feature_dim = params['other_feature_embeedding_dim']
+    filter_height = params['filter_height']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         set_learning_phase(True)
@@ -86,13 +88,14 @@ def res_cnn_1(features, labels, mode, params):
         features_concat = tf.expand_dims(features_concat, -1)
 
     with tf.name_scope('convolution_layer'):
-        features_conv = Convolution2D(filters=n_filters, kernel_size=[3, features_concat.shape[2].value], strides=1,
+        features_conv = Convolution2D(filters=n_filters, kernel_size=[filter_height, features_concat.shape[2].value],
+                                      strides=1,
                                       padding='valid',
                                       data_format='channels_last', activation='relu')(features_concat)
 
     with tf.name_scope('residual_CNN_blocks_layer'):
         for i in range(n_res_cnn_blocks_param):
-            block_output = residual_cnn_block_builder(features_conv, i)
+            block_output = residual_cnn_block_builder(features_conv, i, filter_height)
             features_conv = block_output + features_conv
 
     with tf.name_scope('pooling_layer'):

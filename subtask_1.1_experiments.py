@@ -1,21 +1,16 @@
-import tensorflow as tf
-import pandas as pd
-import numpy as np
 from itertools import product
 
-from utils.pipelines import my_input_fn
-from models.cnn import cnn_1
-from models.res_cnn import res_cnn_1
-
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 from tensorflow.contrib.learn import Experiment, RunConfig
-from tensorflow.contrib.keras.python.keras.backend import clear_session
+
+from models.res_cnn import res_cnn_1
+from utils.pipelines import my_input_fn
 
 
 def report_experiment(experiment):
-    # experiment.train()
-    # clear_session()
     eval_dict, _ = experiment.train_and_evaluate()
-    # clear_session()
 
     model_name = experiment.estimator.model_dir.split('/')[2]
     model_params = experiment.estimator.params
@@ -65,7 +60,9 @@ train_steps = [200, 600, 800, 1000, 1200, 1500]
 feed_dict = {'class_weights': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
              'word_embeddings_path': word_embeddings_path,
              'number_of_res_cnn_blocks': 2,
-             'filter_size': 128}
+             'filter_height': 5,
+             'number_of_filters': 128,
+             'other_feature_embeedding_dim': 10}
 
 # hyperparameters for class weights
 class_weights_ratios = np.arange(1, 5.5, 1.5)
@@ -90,18 +87,27 @@ class_weights_params = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]  # use equal weights 
 # hyper parameters for number of cnn blocks
 n_res_cnn_blocks = [0, 1, 2, 3, 4]
 
+# byper parameters for the embedding dimension for word offsets and pos
+other_feature_dims = [5, 10, 15, 25, 35, 50]
+
+# hyper parameters for the cnn filter height
+n_filter_heights = [2, 3, 5, 10, 15]
+
 # hyper parameters for number of filters
-n_filter_sizes = [128, 256, 512, 1024]
+n_filters = [50, 100, 128, 200, 256, 512, 563, 1024]
+
 # combine all possible hyperparams
-hyperparams = product(class_weights_params, n_res_cnn_blocks, n_filter_sizes)
-hyperparams = [([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 0, 128)]
-train_steps = [5, 10, 15]
-for i, (class_weights, n_res_cnn, n_filter_size) in enumerate(hyperparams, 1):
+hyperparams = product(class_weights_params, n_res_cnn_blocks, n_filters, other_feature_dims, n_filter_heights)
+hyperparams = [([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 0, 2, 1, 5)]
+train_steps = [31]
+for i, (class_weights, n_res_cnn, n_filter, other_feature_dim, filter_height) in enumerate(hyperparams, 1):
 
     for epochs in train_steps:
         feed_dict['class_weights'] = class_weights
         feed_dict['number_of_res_cnn_blocks'] = n_res_cnn
-        feed_dict['filter_size'] = n_filter_size
+        feed_dict['filter_height'] = filter_height
+        feed_dict['number_of_filters'] = n_filter
+        feed_dict['other_feature_embeedding_dim'] = other_feature_dim
 
         config = RunConfig(model_dir='./model_dir/res_cnn_1_' + str(i), save_summary_steps=1)
         classifier_res_cnn = tf.estimator.Estimator(model_fn=res_cnn_1, params=feed_dict,
