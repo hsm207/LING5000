@@ -1,3 +1,4 @@
+from utils.parse_data import extract_entities
 from nltk import word_tokenize, StanfordPOSTagger
 import os
 import re
@@ -10,6 +11,45 @@ from scipy.stats import truncnorm
 punctuation = punctuation.replace('<', '')
 punctuation = punctuation.replace('>', '')
 
+
+def get_entity_word_offsets(tagged_sentence, target_entity_id):
+    """
+    Generate the word offsets in a tagged sentence for a given entity id
+    :param tagged_sentence: A string containing a sentence with tagged entities
+    :param target_entity_id: A string representing the entity's id that we can to compute the offsets from
+    :return: A numpy array of integers representing the offset of each word in the sentence relative to the target
+             entity
+    """
+
+    def entity_regex_generator(entity_id):
+        regex = r'<entity id="{}">(?P<entity_text>.*?)</entity>'.format(entity_id)
+        return regex
+
+    def convert_tagged_entity_to_string(sentence, entity_tag):
+        return re.sub(entity_tag, r'\g<entity_text>', sentence)
+
+    # since some sentences can have html codes in it...
+    tagged_sentence = unescape(tagged_sentence)
+    tagged_target_entity = entity_regex_generator(target_entity_id)
+    regex_words_around_entity = f"(?P<lhs_words>.*)?{tagged_target_entity}(?P<rhs_words>.*)?"
+    other_entities = (k for k in extract_entities(tagged_sentence).keys() if k != target_entity_id)
+
+    for entity in other_entities:
+        tagged_sentence = convert_tagged_entity_to_string(tagged_sentence, entity_regex_generator(entity))
+
+    lhs_words, entity_words, rhs_words = (word_tokenize(sent) for sent in
+                                          re.search(regex_words_around_entity, tagged_sentence).groups())
+
+    i_lhs_words, i_rhs_words = ([i for i, _ in enumerate(words, 1)] for words in (lhs_words, rhs_words))
+
+    if i_lhs_words != []:
+        i_lhs_words.reverse()
+        i_lhs_words = -1 * np.array(i_lhs_words)
+
+    position_embedding = np.concatenate([i_lhs_words,
+                                         np.zeros(len(entity_words)),
+                                         i_rhs_words]).astype(np.int32)
+    return position_embedding
 
 def get_words_between_entities(row):
     """

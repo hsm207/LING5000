@@ -12,10 +12,10 @@ from tensorflow.contrib.keras.python.keras.backend import clear_session
 
 
 def report_experiment(experiment):
-    experiment.train()
-    clear_session()
-    eval_dict = experiment.evaluate()
-    clear_session()
+    # experiment.train()
+    # clear_session()
+    eval_dict, _ = experiment.train_and_evaluate()
+    # clear_session()
 
     model_name = experiment.estimator.model_dir.split('/')[2]
     model_params = experiment.estimator.params
@@ -56,8 +56,8 @@ predict_filenames = ['data/real/subtask_1.1/user_generated/consol_ids.csv',
 
 word_embeddings_path = 'data/real/subtask_1.1/user_generated/word_embeddings_glove_6b_50d.csv'
 
-training_input_fn = my_input_fn(training_filenames, 1, 30, 982)
-test_input_fn = my_input_fn(test_filenames, 0, 30, 246)
+training_input_fn = my_input_fn(training_filenames, 1, 101, 982)
+test_input_fn = my_input_fn(test_filenames, 0, 101, 246)
 predict_input_fn = my_input_fn(predict_filenames, 0, 30, 982 + 246)
 
 train_steps = [200, 600, 800, 1000, 1200, 1500]
@@ -95,8 +95,8 @@ n_filter_sizes = [128, 256, 512, 1024]
 # combine all possible hyperparams
 hyperparams = product(class_weights_params, n_res_cnn_blocks, n_filter_sizes)
 hyperparams = [([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 0, 128)]
-train_steps = [5, 10, 15, 20, 25, 30, 25]
-for i, (class_weights, n_res_cnn, n_filter_size) in enumerate(hyperparams, 3):
+train_steps = [5, 10, 15]
+for i, (class_weights, n_res_cnn, n_filter_size) in enumerate(hyperparams, 1):
 
     for epochs in train_steps:
         feed_dict['class_weights'] = class_weights
@@ -112,12 +112,12 @@ for i, (class_weights, n_res_cnn, n_filter_size) in enumerate(hyperparams, 3):
             eval_input_fn=test_input_fn,
             eval_metrics=None,
             train_steps=epochs,
-            min_eval_frequency=1,
+            min_eval_frequency=0,  # only evaluate after done with training
             eval_delay_secs=0
         )
 
-        experiment_res_cnn_1.train_and_evaluate()
-        # res_cnn_df = report_experiment(experiment_res_cnn_1)
-        # res_cnn_df.to_csv('./results/' + res_cnn_df.index[0] + '_{}.csv'.format(epochs))
+        # eval_result, _ = experiment_res_cnn_1.train_and_evaluate()
+        res_cnn_df = report_experiment(experiment_res_cnn_1)
+        res_cnn_df.to_csv('./results/' + res_cnn_df.index[0] + '_{}.csv'.format(epochs))
 
 print('Finished experiments!')
