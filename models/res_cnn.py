@@ -38,6 +38,7 @@ def res_cnn_1(features, labels, mode, params):
     word_embeddings_file_path_param = params['word_embeddings_path']
     n_res_cnn_blocks_param = params['number_of_res_cnn_blocks']
     n_filters = params['filter_size']
+    other_feature_dim = params['other_feature_embeedding_dim']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         set_learning_phase(True)
@@ -46,10 +47,10 @@ def res_cnn_1(features, labels, mode, params):
 
     with tf.name_scope('input_layer'):
         pos_embedding_vocab = 40 + 1
-        pos_embedding_dim = 5
+        pos_embedding_dim = other_feature_dim
         positional_embedding_vocab_e1 = 165 + 1
         positional_embedding_vocab_e2 = 166 + 1
-        positional_embedding_dim = 5
+        positional_embedding_dim = other_feature_dim
 
         pos_idx = features['pos_idx']
         positional_e1_idx = features['positional_e1_idx']
