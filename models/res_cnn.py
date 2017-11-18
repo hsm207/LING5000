@@ -106,7 +106,9 @@ def res_cnn_1(features, labels, mode, params):
         features_flat = Flatten()(features_pooled)
         features_flat = Dropout(0.5)(features_flat)
         dense1 = Dense(n_filters, activation='relu', name='dense_1')(features_flat)
+        dense1 = Dropout(0.5)(dense1)
         dense2 = Dense(n_filters, activation='relu', name='dense_2')(dense1)
+        dense2 = Dropout(0.5)(dense2)
 
     with tf.name_scope('output_layer'):
         output_logits = Dense(11, activation='linear', name='logits')(dense2)
