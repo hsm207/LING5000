@@ -41,6 +41,7 @@ def res_cnn_1(features, labels, mode, params):
     n_filters = params['number_of_filters']
     other_feature_dim = params['other_feature_embeedding_dim']
     filter_height = params['filter_height']
+    r1, r2, r3 = params['dropout_rates']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         set_learning_phase(True)
@@ -104,11 +105,11 @@ def res_cnn_1(features, labels, mode, params):
 
     with tf.name_scope('dense_layers'):
         features_flat = Flatten()(features_pooled)
-        features_flat = Dropout(0.5)(features_flat)
+        features_flat = Dropout(r1)(features_flat)
         dense1 = Dense(n_filters, activation='relu', name='dense_1')(features_flat)
-        dense1 = Dropout(0.5)(dense1)
+        dense1 = Dropout(r2)(dense1)
         dense2 = Dense(n_filters, activation='relu', name='dense_2')(dense1)
-        dense2 = Dropout(0.5)(dense2)
+        dense2 = Dropout(r3)(dense2)
 
     with tf.name_scope('output_layer'):
         output_logits = Dense(11, activation='linear', name='logits')(dense2)
