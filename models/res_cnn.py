@@ -96,8 +96,7 @@ def res_cnn_1(features, labels, mode, params):
 
     with tf.name_scope('residual_CNN_blocks_layer'):
         for i in range(n_res_cnn_blocks_param):
-            block_output = residual_cnn_block_builder(features_conv, i, filter_height)
-            features_conv = block_output + features_conv
+            features_conv = residual_cnn_block_builder(features_conv, i, filter_height)
 
     with tf.name_scope('pooling_layer'):
         features_pooled = MaxPool2D(pool_size=features_conv.shape[1:3].as_list(), padding='valid',
