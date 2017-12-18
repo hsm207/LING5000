@@ -16,18 +16,19 @@ def res_cnn_1(features, labels, mode, params):
 
     """
 
-    def residual_cnn_block_builder(block_input, block_id):
+    def residual_cnn_block_builder(block_input, block_id, filter_height):
         block_name = 'B{}_residual_cnn_block'.format(block_id)
         conv1_name = 'B{}_convolution1'.format(block_id)
         conv2_name = 'B{}_convolution2'.format(block_id)
         identity_shortcut_name = 'B{}_identity_chortcut'.format(block_id)
 
         with tf.name_scope(block_name):
-            conv1 = Convolution2D(filters=n_filters, kernel_size=[3, block_input.shape[2].value], strides=1,
+            conv1 = Convolution2D(filters=n_filters, kernel_size=[filter_height, block_input.shape[2].value], strides=1,
                                   padding='same',
                                   data_format='channels_last', activation='relu', name=conv1_name)(block_input)
 
-            conv2 = Convolution2D(filters=n_filters, kernel_size=[3, conv1.shape[2].value], strides=1, padding='same',
+            conv2 = Convolution2D(filters=n_filters, kernel_size=[filter_height, conv1.shape[2].value], strides=1,
+                                  padding='same',
                                   data_format='channels_last', activation='relu', name=conv2_name)(conv1)
 
             identity_shortcut = tf.add(conv2, block_input, name=identity_shortcut_name)
@@ -37,7 +38,10 @@ def res_cnn_1(features, labels, mode, params):
     class_weights_params = params['class_weights']
     word_embeddings_file_path_param = params['word_embeddings_path']
     n_res_cnn_blocks_param = params['number_of_res_cnn_blocks']
-    n_filters = params['filter_size']
+    n_filters = params['number_of_filters']
+    other_feature_dim = params['other_feature_embeedding_dim']
+    filter_height = params['filter_height']
+    r1, r2, r3 = params['dropout_rates']
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         set_learning_phase(True)
@@ -46,10 +50,10 @@ def res_cnn_1(features, labels, mode, params):
 
     with tf.name_scope('input_layer'):
         pos_embedding_vocab = 40 + 1
-        pos_embedding_dim = 5
+        pos_embedding_dim = other_feature_dim
         positional_embedding_vocab_e1 = 165 + 1
         positional_embedding_vocab_e2 = 166 + 1
-        positional_embedding_dim = 5
+        positional_embedding_dim = other_feature_dim
 
         pos_idx = features['pos_idx']
         positional_e1_idx = features['positional_e1_idx']
@@ -85,14 +89,14 @@ def res_cnn_1(features, labels, mode, params):
         features_concat = tf.expand_dims(features_concat, -1)
 
     with tf.name_scope('convolution_layer'):
-        features_conv = Convolution2D(filters=n_filters, kernel_size=[3, features_concat.shape[2].value], strides=1,
+        features_conv = Convolution2D(filters=n_filters, kernel_size=[filter_height, features_concat.shape[2].value],
+                                      strides=1,
                                       padding='valid',
                                       data_format='channels_last', activation='relu')(features_concat)
 
     with tf.name_scope('residual_CNN_blocks_layer'):
         for i in range(n_res_cnn_blocks_param):
-            block_output = residual_cnn_block_builder(features_conv, i)
-            features_conv = block_output + features_conv
+            features_conv = residual_cnn_block_builder(features_conv, i, filter_height)
 
     with tf.name_scope('pooling_layer'):
         features_pooled = MaxPool2D(pool_size=features_conv.shape[1:3].as_list(), padding='valid',
@@ -100,9 +104,11 @@ def res_cnn_1(features, labels, mode, params):
 
     with tf.name_scope('dense_layers'):
         features_flat = Flatten()(features_pooled)
-        features_flat = Dropout(0.5)(features_flat)
+        features_flat = Dropout(r1)(features_flat)
         dense1 = Dense(n_filters, activation='relu', name='dense_1')(features_flat)
+        dense1 = Dropout(r2)(dense1)
         dense2 = Dense(n_filters, activation='relu', name='dense_2')(dense1)
+        dense2 = Dropout(r3)(dense2)
 
     with tf.name_scope('output_layer'):
         output_logits = Dense(11, activation='linear', name='logits')(dense2)
